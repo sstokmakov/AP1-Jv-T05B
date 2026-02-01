@@ -1,7 +1,7 @@
 package com.tokmakov.web.model;
 
 import com.tokmakov.domain.model.GameStatus;
-import com.tokmakov.domain.service.util.GameUtils;
+import com.tokmakov.domain.util.GameUtils;
 import lombok.Getter;
 
 import java.util.Arrays;
