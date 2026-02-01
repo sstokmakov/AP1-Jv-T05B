@@ -4,7 +4,7 @@ import com.tokmakov.domain.AuthenticationService;
 import com.tokmakov.domain.model.Game;
 import com.tokmakov.domain.model.User;
 import com.tokmakov.domain.GameService;
-import com.tokmakov.domain.mapper.GameDtoMapper;
+import com.tokmakov.web.mapper.GameDtoMapper;
 import com.tokmakov.web.model.GameDto;
 import com.tokmakov.web.model.GameCreateRequest;
 import com.tokmakov.web.model.GameUpdateRequest;
