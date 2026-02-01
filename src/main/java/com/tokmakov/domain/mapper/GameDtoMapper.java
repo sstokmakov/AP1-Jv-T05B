@@ -1,4 +1,4 @@
-package com.tokmakov.web.mapper;
+package com.tokmakov.domain.mapper;
 
 import com.tokmakov.domain.model.Game;
 import com.tokmakov.web.model.GameDto;

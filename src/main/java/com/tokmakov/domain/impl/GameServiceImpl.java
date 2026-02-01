@@ -1,13 +1,15 @@
-package com.tokmakov.domain.service;
+package com.tokmakov.domain.impl;
 
-import com.tokmakov.datasource.game.GameEntity;
-import com.tokmakov.datasource.game.GameEntityMapper;
-import com.tokmakov.datasource.game.GameRepository;
-import com.tokmakov.domain.exception.*;
+import com.tokmakov.datasource.GameRepository;
+import com.tokmakov.datasource.entity.GameEntity;
+import com.tokmakov.datasource.mapper.GameEntityMapper;
+import com.tokmakov.exception.*;
 import com.tokmakov.domain.model.Game;
 import com.tokmakov.domain.model.GameStatus;
-import com.tokmakov.domain.service.util.GameFieldValidator;
-import com.tokmakov.domain.service.util.GameUtils;
+import com.tokmakov.domain.GameService;
+import com.tokmakov.domain.strategy.ComputerMoveStrategy;
+import com.tokmakov.domain.util.GameFieldValidator;
+import com.tokmakov.domain.util.GameUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,6 +1,7 @@
-package com.tokmakov.datasource.game;
+package com.tokmakov.datasource.entity;
 
 import com.tokmakov.domain.model.GameStatus;
+import com.tokmakov.datasource.converter.GameFieldConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,6 +40,6 @@ public class GameEntity {
     @Column(name = "vs_computer", nullable = false)
     private boolean vsComputer;
 
-    protected GameEntity() {
+    public GameEntity() {
     }
 }

@@ -1,6 +1,7 @@
-package com.tokmakov.datasource.game;
+package com.tokmakov.datasource.mapper;
 
 import com.tokmakov.domain.model.Game;
+import com.tokmakov.datasource.entity.GameEntity;
 
 public class GameEntityMapper {
     public static GameEntity toGameEntity(Game game) {
