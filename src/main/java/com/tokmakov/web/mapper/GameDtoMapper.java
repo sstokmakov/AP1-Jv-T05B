@@ -15,7 +15,8 @@ public class GameDtoMapper {
                 game.getPlayerOUuid(),
                 game.getCurrentTurnPlayerUuid(),
                 game.getWinnerUuid(),
-                game.isVsComputer()
+                game.isVsComputer(),
+                game.getCreatedAt()
         );
     }
 }

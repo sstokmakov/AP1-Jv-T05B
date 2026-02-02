@@ -1,13 +1,15 @@
 package com.tokmakov.web;
 
-import com.tokmakov.domain.AuthenticationService;
+import com.tokmakov.domain.GameService;
+import com.tokmakov.domain.UserService;
 import com.tokmakov.domain.model.Game;
 import com.tokmakov.domain.model.User;
-import com.tokmakov.domain.GameService;
 import com.tokmakov.web.mapper.GameDtoMapper;
 import com.tokmakov.web.model.GameDto;
 import com.tokmakov.web.model.GameCreateRequest;
 import com.tokmakov.web.model.GameUpdateRequest;
+import com.tokmakov.web.model.LeaderboardEntryDto;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @Validated
 @RestController
@@ -22,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GameController {
     private final GameService service;
-    private final AuthenticationService authenticationService;
+    private final UserService userService;
     private final GameDtoMapper mapper;
 
     @PostMapping("/create")
@@ -35,9 +38,8 @@ public class GameController {
     }
 
     @GetMapping("/available")
-    public List<String> availableGames() {
-        User user = authenticationService.getCurrentUser();
-        return service.availableGames(String.valueOf(user.getUuid()));
+    public List<String> availableGames(@AuthenticationPrincipal String uuid) {
+        return service.availableGames(uuid);
     }
 
     @PostMapping("/{uuid}/join")
@@ -60,5 +62,22 @@ public class GameController {
                                @AuthenticationPrincipal String playerUuid) {
         Game game = service.processTurn(gameUuid, playerUuid, request.getX(), request.getY());
         return mapper.toDto(game);
+    }
+
+    @GetMapping("/completed")
+    public List<GameDto> completedGames(@AuthenticationPrincipal String uuid) {
+        return service.completedGamesByUserUuid(UUID.fromString(uuid)).stream()
+                .map(mapper::toDto)
+                .toList();
+    }
+
+    @GetMapping("/leaderboard")
+    public List<LeaderboardEntryDto> leaderboard(@RequestParam("limit") @Min(1) int limit) {
+        return service.topPlayers(limit).stream()
+                .map(entry -> {
+                    User user = userService.findByUuid(entry.userUuid());
+                    return new LeaderboardEntryDto(user.getUuid(), user.getLogin(), entry.ratio());
+                })
+                .toList();
     }
 }

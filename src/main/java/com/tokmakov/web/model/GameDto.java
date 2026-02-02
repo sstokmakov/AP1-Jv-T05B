@@ -4,6 +4,7 @@ import com.tokmakov.domain.model.GameStatus;
 import com.tokmakov.domain.util.GameUtils;
 import lombok.Getter;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,7 @@ public class GameDto {
     private final UUID currentTurnPlayerUuid;
     private final UUID winnerUuid;
     private final boolean vsComputer;
+    private final Instant createdAt;
     private final char playerXSymbol;
     private final char playerOSymbol;
 
@@ -28,7 +30,8 @@ public class GameDto {
                    UUID playerOUuid,
                    UUID currentTurnPlayerUuid,
                    UUID winnerUuid,
-                   boolean vsComputer) {
+                   boolean vsComputer,
+                   Instant createdAt) {
         this.uuid = uuid;
         this.gameField = new Character[gameField.length][gameField.length];
         this.gameStatus = gameStatus;
@@ -37,6 +40,7 @@ public class GameDto {
         this.currentTurnPlayerUuid = currentTurnPlayerUuid;
         this.winnerUuid = winnerUuid;
         this.vsComputer = vsComputer;
+        this.createdAt = createdAt;
         this.playerXSymbol = GameUtils.FIRST_PLAYER_SYMBOL;
         this.playerOSymbol = GameUtils.SECOND_PLAYER_SYMBOL;
 

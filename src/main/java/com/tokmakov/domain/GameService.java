@@ -1,8 +1,10 @@
 package com.tokmakov.domain;
 
 import com.tokmakov.domain.model.Game;
+import com.tokmakov.domain.model.WinRatio;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface GameService {
     Game createGameWithPlayer(String playerUuid);
@@ -18,4 +20,8 @@ public interface GameService {
     Game processTurn(String gameUuid, String playerUuid, int x, int y);
 
     boolean isGameFinished(Game game);
+
+    List<Game> completedGamesByUserUuid(UUID userUuid);
+
+    List<WinRatio> topPlayers(int limit);
 }

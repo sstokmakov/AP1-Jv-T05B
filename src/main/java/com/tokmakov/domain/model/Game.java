@@ -3,6 +3,7 @@ package com.tokmakov.domain.model;
 import lombok.Setter;
 import lombok.Getter;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -16,11 +17,13 @@ public class Game {
     private UUID currentTurnPlayerUuid;
     private UUID winnerUuid;
     private boolean vsComputer;
+    private Instant createdAt;
 
     public Game(UUID uuid, int[][] gameField) {
         this.uuid = uuid;
         this.gameField = gameField;
         gameStatus = GameStatus.WAITING_FOR_PLAYERS;
+        createdAt = Instant.now();
     }
 
     public Game() {

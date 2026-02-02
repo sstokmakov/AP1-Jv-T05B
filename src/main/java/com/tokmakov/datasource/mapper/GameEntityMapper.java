@@ -14,6 +14,7 @@ public class GameEntityMapper {
         gameEntity.setCurrentTurnPlayerUuid(game.getCurrentTurnPlayerUuid());
         gameEntity.setWinnerUuid(game.getWinnerUuid());
         gameEntity.setVsComputer(game.isVsComputer());
+        gameEntity.setCreatedAt(game.getCreatedAt() == null ? java.time.Instant.now() : game.getCreatedAt());
         return gameEntity;
     }
 
@@ -27,6 +28,7 @@ public class GameEntityMapper {
         game.setCurrentTurnPlayerUuid(gameEntity.getCurrentTurnPlayerUuid());
         game.setWinnerUuid(gameEntity.getWinnerUuid());
         game.setVsComputer(gameEntity.isVsComputer());
+        game.setCreatedAt(gameEntity.getCreatedAt());
         return game;
     }
 }

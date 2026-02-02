@@ -1,11 +1,13 @@
 package com.tokmakov.domain.impl;
 
 import com.tokmakov.datasource.GameRepository;
+import com.tokmakov.datasource.WinRatioView;
 import com.tokmakov.datasource.entity.GameEntity;
 import com.tokmakov.datasource.mapper.GameEntityMapper;
 import com.tokmakov.exception.*;
 import com.tokmakov.domain.model.Game;
 import com.tokmakov.domain.model.GameStatus;
+import com.tokmakov.domain.model.WinRatio;
 import com.tokmakov.domain.GameService;
 import com.tokmakov.domain.strategy.ComputerMoveStrategy;
 import com.tokmakov.domain.util.GameFieldValidator;
@@ -117,6 +119,22 @@ public class GameServiceImpl implements GameService {
             makeComputerMove(game);
         }
         return game;
+    }
+
+    @Override
+    public List<Game> completedGamesByUserUuid(UUID userUuid) {
+        List<GameEntity> entities = repository.findCompletedGamesByUserUuid(userUuid);
+        return entities.stream()
+                .map(GameEntityMapper::toGame)
+                .toList();
+    }
+
+    @Override
+    public List<WinRatio> topPlayers(int limit) {
+        List<WinRatioView> rows = repository.findTopWinRatios(limit);
+        return rows.stream()
+                .map(row -> new WinRatio(row.getUserUuid(), row.getWinRatio() == null ? 0.0 : row.getWinRatio()))
+                .toList();
     }
 
     public void makeComputerMove(Game game) {
