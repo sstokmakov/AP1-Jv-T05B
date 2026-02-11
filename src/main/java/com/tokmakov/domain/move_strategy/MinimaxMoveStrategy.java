@@ -1,21 +1,15 @@
 package com.tokmakov.domain.move_strategy;
 
 import com.tokmakov.domain.util.GameUtils;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
-public class MinimaxMoveStrategy implements ComputerMoveStrategy {
+public class MinimaxMoveStrategy implements MoveStrategy {
     @Override
     public int[] findMove(int[][] board) {
-        return bestMove(board);
-    }
-
-    private static int[] bestMove(int[][] board) {
         int bestScore = Integer.MIN_VALUE;
         int[] best = {0, 0};
 
@@ -35,7 +29,7 @@ public class MinimaxMoveStrategy implements ComputerMoveStrategy {
         return best;
     }
 
-    private static int minimax(int[][] board, boolean isMaximizing) {
+    private int minimax(int[][] board, boolean isMaximizing) {
         int winner = GameUtils.findWinnerCell(board);
         if (winner == GameUtils.SECOND_PLAYER_CELL) return 1;
         if (winner == GameUtils.FIRST_PLAYER_CELL) return -1;
@@ -62,7 +56,7 @@ public class MinimaxMoveStrategy implements ComputerMoveStrategy {
         }
     }
 
-    private static List<int[]> emptyCells(int[][] board) {
+    private List<int[]> emptyCells(int[][] board) {
         List<int[]> cells = new ArrayList<>();
         for (int y = 0; y < GameUtils.FIELD_SIZE; y++) {
             for (int x = 0; x < GameUtils.FIELD_SIZE; x++) {

@@ -1,6 +1,6 @@
 package com.tokmakov.domain.move_strategy;
 
-public interface ComputerMoveStrategy {
+public interface MoveStrategy {
     /**
      * @return Возвращает ход {x, y}
      */
