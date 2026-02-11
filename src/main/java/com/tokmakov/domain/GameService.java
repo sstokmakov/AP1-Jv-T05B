@@ -8,10 +8,11 @@ import com.tokmakov.exception.*;
 import com.tokmakov.domain.model.Game;
 import com.tokmakov.domain.model.GameStatus;
 import com.tokmakov.domain.model.WinRatio;
-import com.tokmakov.domain.move_strategy.ComputerMoveStrategy;
+import com.tokmakov.domain.move_strategy.MoveStrategy;
+import com.tokmakov.domain.move_strategy.MoveStrategyFactory;
 import com.tokmakov.domain.util.GameFieldValidator;
 import com.tokmakov.domain.util.GameUtils;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,13 +21,21 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class GameService {
     private static final UUID COMPUTER_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final GameRepository repository;
-    private final ComputerMoveStrategy computerLogicService;
+    private final MoveStrategy computerMoveStrategy;
     private final GameFieldValidator fieldValidator;
+
+    public GameService(GameRepository repository,
+                       MoveStrategyFactory strategyFactory,
+                       @Value("${computer_move_strategy}") String strategyName,
+                       GameFieldValidator fieldValidator) {
+        this.repository = repository;
+        this.computerMoveStrategy = strategyFactory.getRequired(strategyName);
+        this.fieldValidator = fieldValidator;
+    }
 
     public Game createGameWithPlayer(String playerUuid) {
         int[][] field = GameUtils.createEmptyField();
@@ -131,7 +140,7 @@ public class GameService {
         if (isGameFinished(game)) {
             throw new GameNotInProgressException(game.getGameStatus());
         }
-        int[] move = computerLogicService.findMove(game.getGameField());
+        int[] move = computerMoveStrategy.findMove(game.getGameField());
         applyMove(game, move[0], move[1], GameUtils.SECOND_PLAYER_CELL);
         updateGameState(game);
     }
