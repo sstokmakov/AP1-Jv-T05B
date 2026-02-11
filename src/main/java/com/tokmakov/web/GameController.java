@@ -24,7 +24,7 @@ import java.util.UUID;
 @RequestMapping("/game")
 @RequiredArgsConstructor
 public class GameController {
-    private final GameService service;
+    private final GameService gameService;
     private final UserService userService;
     private final GameDtoMapper mapper;
 
@@ -32,27 +32,27 @@ public class GameController {
     public GameDto createGame(@RequestBody GameCreateRequest request,
                               @AuthenticationPrincipal String uuid) {
         Game game = request.isVsComputer()
-                ? service.createGameWithComputer(uuid)
-                : service.createGameWithPlayer(uuid);
+                ? gameService.createGameWithComputer(uuid)
+                : gameService.createGameWithPlayer(uuid);
         return mapper.toDto(game);
     }
 
     @GetMapping("/available")
     public List<String> availableGames(@AuthenticationPrincipal String uuid) {
-        return service.availableGames(uuid);
+        return gameService.availableGames(uuid);
     }
 
     @PostMapping("/{uuid}/join")
     public GameDto joinGame(@PathVariable("uuid") @Pattern(regexp = "[0-9a-fA-F-]{36}") String gameUuid,
                             @AuthenticationPrincipal String playerUuid) {
-        Game game = service.joinGame(gameUuid, playerUuid);
+        Game game = gameService.joinGame(gameUuid, playerUuid);
         return mapper.toDto(game);
     }
 
     @GetMapping("/{uuid}")
     @ResponseBody
     public GameDto getGame(@PathVariable("uuid") @Pattern(regexp = "[0-9a-fA-F-]{36}") String uuid) {
-        Game game = service.gameByUuid(uuid);
+        Game game = gameService.gameByUuid(uuid);
         return mapper.toDto(game);
     }
 
@@ -60,20 +60,20 @@ public class GameController {
     public GameDto processTurn(@PathVariable("uuid") @Pattern(regexp = "[0-9a-fA-F-]{36}") String gameUuid,
                                @RequestBody GameUpdateRequest request,
                                @AuthenticationPrincipal String playerUuid) {
-        Game game = service.processTurn(gameUuid, playerUuid, request.getX(), request.getY());
+        Game game = gameService.processTurn(gameUuid, playerUuid, request.getX(), request.getY());
         return mapper.toDto(game);
     }
 
     @GetMapping("/completed")
     public List<GameDto> completedGames(@AuthenticationPrincipal String uuid) {
-        return service.completedGamesByUserUuid(UUID.fromString(uuid)).stream()
+        return gameService.completedGamesByUserUuid(UUID.fromString(uuid)).stream()
                 .map(mapper::toDto)
                 .toList();
     }
 
     @GetMapping("/leaderboard")
     public List<LeaderboardEntryDto> leaderboard(@RequestParam("limit") @Min(1) int limit) {
-        return service.topPlayers(limit).stream()
+        return gameService.topPlayers(limit).stream()
                 .map(entry -> {
                     User user = userService.findByUuid(entry.userUuid());
                     return new LeaderboardEntryDto(user.getUuid(), user.getLogin(), entry.ratio());

@@ -1,27 +1,194 @@
 package com.tokmakov.domain;
 
+import com.tokmakov.datasource.GameRepository;
+import com.tokmakov.datasource.WinRatioView;
+import com.tokmakov.datasource.entity.GameEntity;
+import com.tokmakov.datasource.mapper.GameEntityMapper;
+import com.tokmakov.exception.*;
 import com.tokmakov.domain.model.Game;
+import com.tokmakov.domain.model.GameStatus;
 import com.tokmakov.domain.model.WinRatio;
+import com.tokmakov.domain.move_strategy.ComputerMoveStrategy;
+import com.tokmakov.domain.util.GameFieldValidator;
+import com.tokmakov.domain.util.GameUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-public interface GameService {
-    Game createGameWithPlayer(String playerUuid);
+@Service
+@RequiredArgsConstructor
+public class GameService {
+    private static final UUID COMPUTER_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
-    Game createGameWithComputer(String playerUuid);
+    private final GameRepository repository;
+    private final ComputerMoveStrategy computerLogicService;
+    private final GameFieldValidator fieldValidator;
 
-    Game joinGame(String gameUuid, String playerUuid);
+    public Game createGameWithPlayer(String playerUuid) {
+        int[][] field = GameUtils.createEmptyField();
+        Game game = new Game(UUID.randomUUID(), field);
+        game.setPlayerXUuid(UUID.fromString(playerUuid));
+        game.setPlayerOUuid(null);
+        game.setVsComputer(false);
+        game.setGameStatus(GameStatus.WAITING_FOR_PLAYERS);
+        game.setCurrentTurnPlayerUuid(null);
+        repository.save(GameEntityMapper.toGameEntity(game));
+        return game;
+    }
 
-    List<String> availableGames(String userUuid);
+    public Game createGameWithComputer(String playerUuid) {
+        int[][] field = GameUtils.createEmptyField();
+        Game game = new Game(UUID.randomUUID(), field);
+        game.setPlayerXUuid(UUID.fromString(playerUuid));
+        game.setPlayerOUuid(COMPUTER_UUID);
+        game.setVsComputer(true);
+        game.setGameStatus(GameStatus.IN_PROGRESS);
+        game.setCurrentTurnPlayerUuid(UUID.fromString(playerUuid));
+        repository.save(GameEntityMapper.toGameEntity(game));
+        return game;
+    }
 
-    Game gameByUuid(String uuid);
+    public Game joinGame(String gameUuid, String playerUuid) {
+        Game game = getGameByUuid(gameUuid);
+        if (game.getGameStatus() != GameStatus.WAITING_FOR_PLAYERS || game.isVsComputer()) {
+            throw new GameNotInProgressException(game.getGameStatus());
+        }
+        if (game.getPlayerOUuid() != null) {
+            throw new IllegalArgumentException("Game already has two players");
+        }
+        if (game.getPlayerXUuid().toString().equals(playerUuid)) {
+            throw new IllegalArgumentException("Player already joined");
+        }
+        game.setPlayerOUuid(UUID.fromString(playerUuid));
+        game.setGameStatus(GameStatus.IN_PROGRESS);
+        game.setCurrentTurnPlayerUuid(game.getPlayerXUuid());
+        repository.save(GameEntityMapper.toGameEntity(game));
+        return game;
+    }
 
-    Game processTurn(String gameUuid, String playerUuid, int x, int y);
+    public List<String> availableGames(String userUuid) {
+        Iterable<GameEntity> entities = repository.findByGameStatus(GameStatus.WAITING_FOR_PLAYERS);
+        List<String> uuids = new ArrayList<>();
+        for (GameEntity entity : entities) {
+            if (String.valueOf(entity.getUuid()).equals(userUuid))
+                continue;
+            uuids.add(String.valueOf(entity.getUuid()));
+        }
+        return uuids;
+    }
 
-    boolean isGameFinished(Game game);
+    public boolean isGameFinished(Game game) {
+        return game.getGameStatus() == GameStatus.GAME_OVER;
+    }
 
-    List<Game> completedGamesByUserUuid(UUID userUuid);
+    public Game gameByUuid(String uuid) {
+        return getGameByUuid(uuid);
+    }
 
-    List<WinRatio> topPlayers(int limit);
+    public Game processTurn(String gameUuid, String playerUuid, int x, int y) {
+        Game game = getGameByUuid(gameUuid);
+        if (game.getGameStatus() == GameStatus.WAITING_FOR_PLAYERS) {
+            throw new GameNotInProgressException(game.getGameStatus());
+        }
+        if (isGameFinished(game)) {
+            throw new GameNotInProgressException(game.getGameStatus());
+        }
+
+        UUID playerId = UUID.fromString(playerUuid);
+        if (!playerId.equals(game.getCurrentTurnPlayerUuid())) {
+            throw new IllegalArgumentException("It is not this player's turn");
+        }
+
+        int playerCell = resolvePlayerCell(game, playerId);
+        applyMove(game, x, y, playerCell);
+        updateGameState(game);
+
+        if (!isGameFinished(game) && game.isVsComputer() && COMPUTER_UUID.equals(game.getCurrentTurnPlayerUuid())) {
+            makeComputerMove(game);
+        }
+        return game;
+    }
+
+    public List<Game> completedGamesByUserUuid(UUID userUuid) {
+        List<GameEntity> entities = repository.findCompletedGamesByUserUuid(userUuid);
+        return entities.stream()
+                .map(GameEntityMapper::toGame)
+                .toList();
+    }
+
+    public List<WinRatio> topPlayers(int limit) {
+        List<WinRatioView> rows = repository.findTopWinRatios(limit);
+        return rows.stream()
+                .map(row -> new WinRatio(row.getUserUuid(), row.getWinRatio() == null ? 0.0 : row.getWinRatio()))
+                .toList();
+    }
+
+    public void makeComputerMove(Game game) {
+        if (isGameFinished(game)) {
+            throw new GameNotInProgressException(game.getGameStatus());
+        }
+        int[] move = computerLogicService.findMove(game.getGameField());
+        applyMove(game, move[0], move[1], GameUtils.SECOND_PLAYER_CELL);
+        updateGameState(game);
+    }
+
+    private void applyMove(Game game, int x, int y, int value) {
+        fieldValidator.validateTurn(game, x, y);
+        game.updateField(x, y, value);
+        repository.save(GameEntityMapper.toGameEntity(game));
+    }
+
+    private void updateGameState(Game game) {
+        int winnerCell = GameUtils.findWinnerCell(game.getGameField());
+        if (winnerCell != GameUtils.EMPTY_CELL) {
+            game.setGameStatus(GameStatus.GAME_OVER);
+            game.setWinnerUuid(resolveWinnerUuid(game, winnerCell));
+            game.setCurrentTurnPlayerUuid(null);
+            repository.save(GameEntityMapper.toGameEntity(game));
+            return;
+        }
+        if (GameUtils.isBoardFull(game.getGameField())) {
+            game.setGameStatus(GameStatus.GAME_OVER);
+            game.setWinnerUuid(null);
+            game.setCurrentTurnPlayerUuid(null);
+            repository.save(GameEntityMapper.toGameEntity(game));
+            return;
+        }
+
+        UUID nextPlayer = nextTurnPlayer(game);
+        game.setGameStatus(GameStatus.IN_PROGRESS);
+        game.setCurrentTurnPlayerUuid(nextPlayer);
+        repository.save(GameEntityMapper.toGameEntity(game));
+    }
+
+    private UUID resolveWinnerUuid(Game game, int winnerCell) {
+        return winnerCell == GameUtils.FIRST_PLAYER_CELL ? game.getPlayerXUuid() : game.getPlayerOUuid();
+    }
+
+    private int resolvePlayerCell(Game game, UUID playerId) {
+        if (playerId.equals(game.getPlayerXUuid())) {
+            return GameUtils.FIRST_PLAYER_CELL;
+        }
+        if (playerId.equals(game.getPlayerOUuid())) {
+            return GameUtils.SECOND_PLAYER_CELL;
+        }
+        throw new IllegalArgumentException("Player is not part of this game");
+    }
+
+    private UUID nextTurnPlayer(Game game) {
+        UUID current = game.getCurrentTurnPlayerUuid();
+        return current.equals(game.getPlayerOUuid()) ?
+                game.getPlayerXUuid() : game.getPlayerOUuid();
+    }
+
+    private Game getGameByUuid(String uuid) {
+        UUID parsedUuid = UUID.fromString(uuid);
+        Optional<GameEntity> game = repository.findById(parsedUuid);
+        GameEntity entity = game.orElseThrow(() -> new GameNotFoundException(uuid));
+        return GameEntityMapper.toGame(entity);
+    }
 }

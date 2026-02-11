@@ -1,4 +1,4 @@
-package com.tokmakov.domain.strategy;
+package com.tokmakov.domain.move_strategy;
 
 import com.tokmakov.domain.util.GameUtils;
 import lombok.RequiredArgsConstructor;

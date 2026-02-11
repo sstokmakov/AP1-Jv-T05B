@@ -1,15 +1,39 @@
 package com.tokmakov.domain;
 
+import com.tokmakov.datasource.UserRepository;
+import com.tokmakov.datasource.entity.UserEntity;
+import com.tokmakov.datasource.mapper.UserEntityMapper;
 import com.tokmakov.domain.model.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
-public interface UserService {
-    User findByLogin(String login);
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository;
 
-    User findByUuid(UUID uuid);
+    public User findByLogin(String login) {
+        UserEntity entity = userRepository.findByLogin(login)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return UserEntityMapper.toUser(entity);
+    }
 
-    User save(User user);
+    public User findByUuid(UUID uuid) {
+        UserEntity entity = userRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return UserEntityMapper.toUser(entity);
+    }
 
-    boolean isUserExist(String login);
+    public User save(User user) {
+        UserEntity entity = userRepository.save(UserEntityMapper.toEntity(user));
+        return UserEntityMapper.toUser(entity);
+    }
+
+    public boolean isUserExist(String login) {
+        Optional<UserEntity> user = userRepository.findByLogin(login);
+        return user.isPresent();
+    }
 }
